@@ -2,10 +2,11 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
-import FHIRClient from 'fhirclient';
+import smart from 'fhirclient';
 
-const client = FHIRClient.client("https://r3.smarthealthit.org");
-client.request("Patient").then(console.log).catch(console.error);
+const client = await smart.oauth2.ready();
+const patient = await client.patient.read();
+console.log("Patient:", patient);
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
