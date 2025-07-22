@@ -8,8 +8,9 @@ smart.oauth2.authorize({
     // The scopes that you request from the EHR. In this case we want to:
     // launch            - Get the launch context
     // openid & fhirUser - Get the current user
-    // patient/*.read    - Read patient data
-    scope: "launch openid fhirUser patient/*.read",
+    // patient/Observation.read - Read observations for the patient
+    // patient/Patient.read - Read the patient resource
+    scope: "launch openid fhirUser patient/Observation.read patient/Patient.read",
 
     // Typically, if your redirectUri points to the root of the current directory
     // (where the launchUri is), you can omit this option because the default value is
