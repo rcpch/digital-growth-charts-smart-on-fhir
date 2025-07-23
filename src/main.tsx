@@ -54,6 +54,20 @@ function getTitle(patient: fhirR5.Patient): string | undefined {
   return patient.id;
 }
 
+function getSex(patient: fhirR5.Patient): 'male' | 'female' {
+  switch(patient.gender) {
+    case 'male':
+      return 'male';
+
+    case 'female':
+      return 'female';
+
+    default:
+      throw new Error(`Unsupported patient sex ${patient.gender}`)
+  }
+}
+
+
 const [patient, observations] = await Promise.all([
   fetchPatient(),
   fetchObservations(client.patient.id)
@@ -62,12 +76,11 @@ const [patient, observations] = await Promise.all([
 console.log("Patient:", patient);
 console.log("Observations:", observations);
 
-const title = getTitle(patient) || "Growth Chart";
-
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App
-      title={title}
+      title={getTitle(patient) || "Growth Chart"}
+      sex={getSex(patient)}
     />
   </StrictMode>,
 )

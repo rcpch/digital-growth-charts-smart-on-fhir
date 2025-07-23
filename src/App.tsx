@@ -1,12 +1,12 @@
 import { RCPCHChart } from '@rcpch/digital-growth-charts-react-component-library'
 import './App.css'
 
-function App({ title }: { title: string }) {
+function App({ title, sex }: { title: string, sex: 'male' | 'female' }) {
   return (
     <RCPCHChart
         reference={'uk-who'}
         measurementMethod={'height'}
-        sex={'female'}
+        sex={sex}
         title={title}
         measurements={{
           "height": []
