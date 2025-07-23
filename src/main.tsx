@@ -122,9 +122,6 @@ let [patient, observations] = await Promise.all([
   fetchObservations(client.patient.id)
 ]);
 
-// HACK
-observations = observations.slice(0, 1);
-
 const measurements = await Promise.all(observations.map(obs => callAPIForObservation(patient, obs)));
 
 const measurementObject: { [key: string]: any[] } = {
