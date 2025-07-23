@@ -11,11 +11,13 @@ function App({ title, sex, measurements }: { title: string, sex: 'male' | 'femal
       <button onClick={() => setMeasurementMethod('weight')}>Weight</button>
     </div>
     <RCPCHChart
+        // Workaround charts bug (https://github.com/rcpch/digital-growth-charts-react-component-library/issues/168)
+        key={measurementMethod}
         reference={'uk-who'}
         measurementMethod={measurementMethod}
         sex={sex}
         title={title}
-        measurements={{ [measurementMethod]: measurements[measurementMethod] || [] }}
+        measurements={measurements}
         theme={'traditional'}
         enableZoom
         chartType={'centile'}
