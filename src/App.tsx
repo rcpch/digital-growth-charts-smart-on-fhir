@@ -1,16 +1,14 @@
-import { RCPCHChart } from '@rcpch/digital-growth-charts-react-component-library'
-import './App.css'
+import { RCPCHChart } from '@rcpch/digital-growth-charts-react-component-library';
+import './App.css';
 
-function App({ title, sex }: { title: string, sex: 'male' | 'female' }) {
+function App({ title, sex, measurements }: { title: string, sex: 'male' | 'female', measurements: any }) {
   return (
     <RCPCHChart
         reference={'uk-who'}
         measurementMethod={'height'}
         sex={sex}
         title={title}
-        measurements={{
-          "height": []
-        }}
+        measurements={measurements}
         theme={'traditional'}
         enableZoom
         chartType={'centile'}
