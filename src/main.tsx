@@ -1,14 +1,16 @@
-import { StrictMode } from 'react'
+import { cache, StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 import smart from 'fhirclient';
-import type { fhirR5 } from '@smile-cdr/fhirts'
+import { fhirR5 } from '@smile-cdr/fhirts'
 
 const GROWTH_API_BASEURL: string = import.meta.env.VITE_APP_GROWTH_API_BASEURL;
 const GROWTH_API_KEY: string = import.meta.env.VITE_APP_API_KEY;
 
 const client = await smart.oauth2.ready();
+
+(window as any).fhirClient = client
 
 if (!client.patient.id) {
   console.error("Failed to initialize FHIR client. Missing patient ID.");
@@ -27,7 +29,11 @@ async function fetchObservations(patientId: string): Promise<fhirR5.Observation[
   const query = new URLSearchParams();
   query.set("patient", patientId);
   query.set("_count", "100"); // Try this to fetch fewer pages
-  query.set("code", Object.keys(loincCodeToMeasurementMethod).map(c => `http://loinc.org|${c}`).join(","));
+
+  const codes = Object.keys(loincCodeToMeasurementMethod).map(code => `http://loinc.org|${code}`);
+  codes.push("http://snomed.info/sct|268482007"); // the code we cache our data under
+
+  query.set("code", codes.join(","));
 
   const observations = await client.request("Observation?" + query, {
       pageLimit: 0,   // get all pages
@@ -117,12 +123,57 @@ async function callAPIForObservation(patient: fhirR5.Patient, observation: fhirR
   return response.json();
 }
 
+async function saveMeasurementForObservation(observation: fhirR5.Observation, measurement: any): Promise<void> {
+  const measurement_method = measurement.child_observation_value.measurement_method;
+
+  const cacheObservation: fhirR5.Observation = {
+    id: `rcpch-dgc-${measurement_method}-${observation.id}`,
+    resourceType: 'Observation',
+    code: {
+      text: `${measurement.child_observation_value.measurement_method} centile`,
+      coding: [
+        {
+          "system": "http://snomed.info/sct",
+          "code": "268482007" // | Child height centile (observable entity)
+        }
+      ]
+    },
+    valueAttachment: {
+      contentType: 'application/json',
+      data: btoa(JSON.stringify(measurement)),
+      title: `RCPCH DGC ${measurement_method} centile for ${observation.id}`
+    }
+  };
+
+  const response = await client.create(cacheObservation as any);
+
+  if (!response.ok) {
+    console.error(`Failed to save measurement for observation ${observation.id}:`, response);
+    throw new Error(`Failed to save measurement for observation ${observation.id}: ${response.statusText}`);
+  }
+
+  console.log(JSON.stringify(cacheObservation));
+}
+
 let [patient, observations] = await Promise.all([
   fetchPatient(),
   fetchObservations(client.patient.id)
 ]);
 
-const measurements = await Promise.all(observations.map(obs => callAPIForObservation(patient, obs)));
+console.log("Patient:", patient);
+console.log("Observations:", observations);
+
+// HACK
+observations = observations.slice(0, 1);
+
+const measurements = await Promise.all(observations.map(async (obs) => {
+  const measurement = await callAPIForObservation(patient, obs);
+  // async cache, doesn't affect rendering
+  if (obs.code.coding?.[0].code && obs.code.coding?.[0].code in loincCodeToMeasurementMethod) {
+    saveMeasurementForObservation(obs, measurement);
+  }
+  return measurement;
+}));
 
 const measurementObject: { [key: string]: any[] } = {
   height: [],
@@ -136,8 +187,6 @@ for(const measurement of measurements) {
   measurementObject[key].push(measurement);
 }
 
-console.log("Patient:", patient);
-console.log("Observations:", observations);
 console.log("Measurements:", measurements);
 console.log("Measurement Object:", measurementObject);
 
